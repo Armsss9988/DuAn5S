@@ -1,29 +1,14 @@
-import {
-  Box,
-  View,
-  Center,
-  HStack,
-  Text,
-  VStack,
-  Divider,
-  Modal,
-  Button,
-  FormControl,
-  Input,
-} from "native-base";
-import { useHeaderHeight } from "@react-navigation/elements";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { Box, View, Center, HStack, Text, VStack, Divider } from "native-base";
+import { StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import CustomSelect from "@/components/CustomSelect";
 import CustomStack from "@/components/CustomStack";
 import CustomFlatList from "@/components/CustomFlatList";
 import { useModal } from "@/hooks/useModal";
-import RedAsteriskText from "@/components/RedAsteriskText";
-import CreateModal from "@/components/CreateModal";
+import GlobalModal from "@/components/GlobalModal";
 
 export default function DanhSachCSHT() {
-  const router = useRouter();
   const [donvi, setDonvi] = useState("");
   const [toquanly, setToQuanLy] = useState("");
   const [csht, setCSHT] = useState("");
@@ -69,6 +54,51 @@ export default function DanhSachCSHT() {
       onPress: () => showEdit(),
     },
   ];
+  const initialData: Record<string, FormField> = {
+    donVi: {
+      type: "select",
+      label: "Đơn Vị",
+      options: [
+        { label: "Đơn Vị 1", value: "type1" },
+        { label: "Đơn Vị 2", value: "type2" },
+      ],
+      required: true,
+    },
+    toQuanLy: {
+      type: "select",
+      label: "Tổ Quản Lý",
+      options: [
+        { label: "Tổ Quản Lý 1", value: "type1" },
+        { label: "Tổ Quản Lý 2", value: "type2" },
+      ],
+      required: true,
+    },
+    loaiCSHT: {
+      type: "select",
+      label: "Loại CSHT",
+      options: [
+        { label: "Loại CSHT 1", value: "type1" },
+        { label: "Loại CSHT 2", value: "type2" },
+      ],
+      required: true,
+    },
+    maCSHT: { type: "text", label: "Mã CSHT", required: true },
+    tenCSHT: { type: "text", label: "Tên CSHT", required: true },
+    diaChi: { type: "text", label: "Địa chỉ", required: false },
+    anhTram: { type: "file", label: "Ảnh Trạm", required: false },
+  };
+  const editData: Record<string, any> = {
+    donVi: "type2",
+    toQuanLy: "type2",
+    loaiCSHT: "type1",
+    anhTram:
+      "https://image.nhandan.vn/Uploaded/2024/unqxwpejw/2023_09_24/anh-dep-giao-thong-1626.jpg",
+  };
+
+  const handleSave = (data: Record<string, any>) => {
+    console.log("Saved data:", data);
+    // handle save logic
+  };
 
   return (
     <>
@@ -90,7 +120,7 @@ export default function DanhSachCSHT() {
             />
           </Box>
         </HStack>
-        <HStack alignItems="center">
+        <HStack alignItems="center" my='1'>
           <Text fontSize={12} bold w="30%">
             Tổ quản lý
           </Text>
@@ -129,118 +159,28 @@ export default function DanhSachCSHT() {
             />
           </Box>
         </Center>
-        <Center>
-          <Modal isOpen={isShowEdit} onClose={() => closeEdit()} size="full">
-            <Modal.Content>
-              <Modal.CloseButton />
-              <Modal.Header>Contact Us</Modal.Header>
-              <Modal.Body>
-                <FormControl>
-                  <FormControl.Label>Name</FormControl.Label>
-                  <Input />
-                </FormControl>
-                <FormControl mt="3">
-                  <FormControl.Label>Email</FormControl.Label>
-                  <Input />
-                </FormControl>
-              </Modal.Body>
-              <Modal.Footer>
-                <Button.Group space={2}>
-                  <Button
-                    variant="ghost"
-                    colorScheme="blueGray"
-                    onPress={() => {
-                      closeEdit();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onPress={() => {
-                      closeEdit();
-                    }}
-                  >
-                    Save
-                  </Button>
-                </Button.Group>
-              </Modal.Footer>
-            </Modal.Content>
-          </Modal>
-          <CreateModal
-            isShowCreate={isShowCreate}
-            closeCreate={closeCreate}
-            handleSubmit={() => {}}
-          />
-          {/* <Modal isOpen={isShowCreate} onClose={() => closeCreate()} size='full'>
-            <Modal.Content>
-              <Modal.CloseButton />
-              <Modal.Header>Tạo CSHT</Modal.Header>
-              <Modal.Body>
-                <FormControl>
-                  <RedAsteriskText>Đơn Vị: </RedAsteriskText>
-                  <Input />
-                </FormControl>
-                <FormControl mt="3">
-                  <RedAsteriskText>Tổ Quản Lý: </RedAsteriskText>
-                  <Input />
-                </FormControl>
-                <FormControl mt="3">
-                  <RedAsteriskText>Loại CSHT: </RedAsteriskText>
-                  <Input />
-                </FormControl>
-                <FormControl mt="3">
-                  <RedAsteriskText>Mã CSHT: </RedAsteriskText>
-                  <Input />
-                </FormControl>
-                <FormControl mt="3">
-                  <RedAsteriskText>Tên CSHT: </RedAsteriskText>
-                  <Input />
-                </FormControl>
-                <FormControl mt="3">
-                  <RedAsteriskText>Địa chỉ: </RedAsteriskText>
-                  <Input />
-                </FormControl>
-                <FormControl mt="3">
-                  <FormControl.Label>Ảnh Trạm: </FormControl.Label>
-                  <Input />
-                </FormControl>
-              </Modal.Body>
-              <Modal.Footer>
-                <Button.Group space={2}>
-                  <Button
-                    variant="ghost"
-                    colorScheme="blueGray"
-                    onPress={() => {
-                      closeCreate();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onPress={() => {
-                      handleSubmit(closeCreate);
-                    }}
-                  >
-                    Save
-                  </Button>
-                </Button.Group>
-              </Modal.Footer>
-            </Modal.Content>
-          </Modal> */}
-        </Center>
       </View>
+      <GlobalModal
+        isOpen={isShowEdit}
+        onClose={() => closeEdit()}
+        headerTitle="Sửa CSHT"
+        data={initialData}
+        initialData={editData}
+        onSubmitModal={handleSave}
+        action="Sửa"
+      />
+      <GlobalModal
+        isOpen={isShowCreate}
+        onClose={() => closeCreate()}
+        headerTitle="Tạo CSHT"
+        data={initialData}
+        onSubmitModal={handleSave}
+        action="Tạo"
+      />
     </>
   );
 }
-interface InfrastructureItem {
-  donvi: string;
-  toquanly: string;
-  typeCSHT: string;
-  codeCSHT: string;
-  nameCSHT: string;
-  typeTram: string;
-  address: string;
-}
+
 const infrastructureData: InfrastructureItem[] = [
   {
     donvi: "ha",
@@ -273,7 +213,7 @@ const infrastructureData: InfrastructureItem[] = [
     donvi: "vvv",
     toquanly: "ccc",
     typeCSHT: "hahaha",
-    codeCSHT: "zz",
+    codeCSHT: "zsz",
     nameCSHT: "bb",
     typeTram: "nnsssssssssss",
     address: "tt",
@@ -373,27 +313,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
 });
-
-const dataCSHT = [
-  {
-    donvi: "",
-    toquanly: "",
-    typeCSHT: "",
-    codeCSHT: "",
-    nameCSHT: "",
-    typeTram: "",
-    address: "",
-  },
-  {
-    donvi: "",
-    toquanly: "",
-    typeCSHT: "",
-    codeCSHT: "",
-    nameCSHT: "",
-    typeTram: "",
-    address: "",
-  },
-];
 const cshtOptions = [
   { label: "Nhà trạm", value: "ux" },
   { label: "Cloud", value: "ux" },

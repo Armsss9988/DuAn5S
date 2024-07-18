@@ -3,7 +3,7 @@ import { Text } from "native-base";
 
 interface RedAsteriskTextProps {
   children: React.ReactNode;
-  error?: string;
+  error?: any;
 }
 
 const RedAsteriskText: React.FC<RedAsteriskTextProps> = ({

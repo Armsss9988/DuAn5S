@@ -1,12 +1,5 @@
 import React from 'react';
 import { FlatList, StyleSheet } from 'react-native';
-import { Box } from 'native-base';
-
-interface CustomFlatListProps<T> {
-  data: T[];
-  renderItem: ({ item }: { item: T }) => JSX.Element;
-  keyExtractor: (item: T) => string;
-}
 
 const CustomFlatList = <T extends unknown>({
   data,
