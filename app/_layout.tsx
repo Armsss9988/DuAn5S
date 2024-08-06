@@ -1,37 +1,79 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
+import { Stack, useRouter } from "expo-router";
+import { Button, NativeBaseProvider, View, Center, Spinner } from "native-base";
+import { RootSiblingParent } from "react-native-root-siblings";
+import AuthProvider from "@/components/services/AuthProvider";
+import { AuthContext } from "@/components/services/AuthProvider";
+import { useContext, useEffect } from "react";
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  return (
 
+      <AuthProvider>
+        <RootSiblingParent>
+          <NativeBaseProvider>
+            <RootStack />
+          </NativeBaseProvider>
+        </RootSiblingParent>
+      </AuthProvider>
+  );
+}
+const RootStack = () => {
+  const { token, isLoading } = useContext(AuthContext);
+  const router = useRouter();
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (!isLoading) {
+      if (token) {
+        router.push("/5S");
+      } else {
+        router.push("/");
+      }
     }
-  }, [loaded]);
+  }, [token, isLoading]);
 
-  if (!loaded) {
-    return null;
+  if (isLoading) {
+    return <LoadingScreen />;
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: "#111111",
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+        headerBackTitleVisible: false,
+        headerBackVisible: false,
+        headerShown: false,
+        gestureEnabled: false,
+      }}
+    >
+      {token ? (
+        <Stack.Screen
+          name="5S"
+          options={{
+            title: "Ứng dụng 5S",
+            headerShown: false,
+            gestureEnabled: false,
+          }}
+        />
+      ) : (
+        <Stack.Screen
+          name="index"
+          options={{
+            title: "Login",
+            headerShown: false,
+            gestureEnabled: false,
+          }}
+        />
+      )}
+    </Stack>
   );
-}
+};
+
+const LoadingScreen = () => (
+  <Center flex={1}>
+    <Spinner size="lg" color="primary.500" />
+  </Center>
+);
