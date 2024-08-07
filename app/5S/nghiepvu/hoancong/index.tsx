@@ -20,7 +20,7 @@ import CustomSelect from "@/components/CustomSelect";
 import CustomStack from "@/components/CustomStack";
 import HiddenSwipeItem from "@/components/HiddenSwipeItem";
 import { useModal } from "@/hooks/useModal";
-import GlobalModal from "@/components/GlobalModal";
+import GlobalModal, { ModalFormData } from "@/components/GlobalModal";
 import { SwipeListView } from "react-native-swipe-list-view";
 import cshtService from "@/components/services/cshtService";
 import CustomHeader from "@/components/CustomHeader";
@@ -33,6 +33,7 @@ import hoancongService, {
   ToQuanlyReq,
 } from "@/components/services/hoancongService";
 import { AuthContext } from "@/components/services/AuthProvider";
+import { getImages } from "../../../../utils/get-images";
 
 export default function PhieuHoanCong() {
   const [donvi, setDonvi] = useState("");
@@ -54,10 +55,12 @@ export default function PhieuHoanCong() {
   const { userInfo } = useContext(AuthContext);
   const [selectedItem, setSelectedItem] = useState<Record<string, any>>();
   const [selectedImage, setSelectedImage] = useState<string[]>();
-  const [selectedImageContent, setSelectedImageContent] = useState<string[] | {}>();
+  const [selectedImageContent, setSelectedImageContent] = useState<
+    string[] | {}
+  >();
   const [deletedImage, setDeletedImage] = useState<string[] | {}>();
   const [initModalData, setInitModalData] = useState<ImageInfo | undefined>();
-  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -139,8 +142,13 @@ export default function PhieuHoanCong() {
     }
   };
   const handleUpdateAnh = async (formData: Record<string, any>) => {
-    console.log("Form Data:", formData);
-    Alert.alert("Update Ảnh", "Hoàn công thành công phiếu: " + formData?.id);
+    try {
+      console.log("Form Data: " + JSON.stringify(formData));
+      await hoancongService.LoadPhongTrao();
+      Alert.alert("Update Ảnh", "Hoàn công thành công phiếu: " + formData?.id);
+    } catch (error) {
+      console.error("Failed to fetch CSHT items", error);
+    }
   };
 
   const handleLongPress = (item: HoanCongItemRes) => {
@@ -184,13 +192,10 @@ export default function PhieuHoanCong() {
     return [
       {
         icon: require("@/assets/images/btn/icon/save.png"),
-        title: "Hoàn Công",
+        title: "Cập Nhật Ảnh",
         onPress: async () => {
           try {
-            
             await SelectImage(item.id);
-            console.log("DATA PASS DATA PASS DATA PASS DATA PASS DATA PASS: " + JSON.stringify(initModalData));
-            console.log("DATA PASS DATA PASS DATA PASS DATA PASS DATA PASS FILE NAME: " + initModalData?.FileNameList);
             setModalType("hoancong");
             showModal();
           } catch (error) {
@@ -205,11 +210,9 @@ export default function PhieuHoanCong() {
           try {
             await SelectImage(item.id);
             setModalType("khoaphieu");
-            
           } catch (error) {
             console.error("Failed to fetch items", error);
-          }
-          finally{
+          } finally {
             showModal();
           }
         },
@@ -221,13 +224,14 @@ export default function PhieuHoanCong() {
     hinhAnh: { type: "imagePicker", label: "Ảnh", required: true },
   };
   const SelectImage = async (id: number) => {
-    try {    
-      const res : LoadThongTinHoanCongRes = await hoancongService.LoadThongTinHoanCong(id);
-      console.log("Hinh anh co thong tin la: "+res.hinhAnh);
-      setInitModalData(res.hinhAnh? res.hinhAnh : undefined);
-      setSelectedImage(res.hinhAnh? res.hinhAnh.FileNameList : []);
-      setSelectedImageContent(res.hinhAnh? res.hinhAnh.FileContentList : []);
-      setDeletedImage(res.hinhAnh? res.hinhAnh.deletedFileNames : []);
+    try {
+      const res: LoadThongTinHoanCongRes =
+        await hoancongService.LoadThongTinHoanCong(id);
+      console.log("Hinh anh co thong tin la: " + res.hinhAnh);
+      setInitModalData(res.hinhAnh ? res.hinhAnh : undefined);
+      setSelectedImage(res.hinhAnh ? res.hinhAnh.FileNameList : []);
+      setSelectedImageContent(res.hinhAnh ? res.hinhAnh.FileContentList : []);
+      setDeletedImage(res.hinhAnh ? res.hinhAnh.deletedFileNames : []);
     } catch (error) {
       console.error("Failed to fetch items", error);
     }
@@ -412,6 +416,7 @@ export default function PhieuHoanCong() {
             borderWidth="3"
             borderRadius="5"
             alignContent="space-evenly"
+            pr="2"
           >
             <Text bold fontSize={18} w="70%" textAlign="center">
               Danh sách Phiếu
@@ -473,9 +478,7 @@ export default function PhieuHoanCong() {
           }}
           headerTitle="Sửa CSHT"
           data={initData}
-          onSubmitModal={() => {
-            handleHoanCong();
-          }}
+          onSubmitModal={handleHoanCong}
           action="Sửa"
         />
       )}
@@ -486,16 +489,17 @@ export default function PhieuHoanCong() {
             closeModal();
             setModalType(null);
           }}
-          headerTitle="Update Ảnh"
+          headerTitle="Cập Nhật Ảnh"
           data={initData}
-          // initialData={{fileNameList: selectedImage, fileContentList: selectedImageContent, deletedFileNames: deletedImage}}
-          initialData={{hinhAnhCoSan: selectedImage? selectedImage : {}}}
-          
-          onSubmitModal={(formData) => {
-            handleUpdateAnh(formData);
-            setModalType(null);
-          }}
-          action="Hoàn Công"
+          images={selectedImage ? selectedImage : []}
+          onSubmitModal={
+            async (formData) => {
+              console.log("formdata: " + formData);
+              await handleUpdateAnh(formData);
+              setModalType(null);
+            }
+          }
+          action="Cập Nhật"
         />
       )}
     </>

@@ -23,6 +23,7 @@ export default function Login() {
   const { login } = useContext(AuthContext);
   const onSubmit = async (data: LoginData) => {
     setIsLoading(true);
+    console.log("data " + data);
     try {
       await login(data);
     } catch (error) {

@@ -10,49 +10,52 @@ import {
   Box,
   Text,
   Stack,
+  Spinner,
 } from "native-base";
 import { useForm, Controller } from "react-hook-form";
 import RedAsteriskText from "./RedAsteriskText";
 import CustomSelect from "./CustomSelect";
 import * as ImagePicker from "expo-image-picker";
-import hoancongService from "./services/hoancongService";
-import ImageCarousel from "./ImageCarousel";
+import ImageCarousel, { ImageSource } from "./ImageCarousel";
 import { Platform } from "react-native";
 import { ImageInfo } from "./services/hoancongService";
-import ImageCarouselSource from "./ImageCarouselSource";
-import ImageCarouselURI from "./ImageCarouselURI";
 
-const GlobalModal: React.FC<GlobalModalProps> = ({
-  isOpen,
-  onClose,
-  headerTitle,
-  data,
-  image,
-  initialData = {},
-  onSubmitModal,
-  action,
-}) => {
+export interface ModalFormData {
+  [key: string]: any; // Adjust based on your actual form fields
+}
+export interface GlobalModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  headerTitle: string;
+  data: Record<string, any>;
+  images?: ImageSource[];
+  onSubmitModal: (data: FormData) => Promise<void>;
+  action: string;
+  initialData?: Record<string, any>;
+  }
+  const GlobalModal: React.FC<GlobalModalProps> = ({
+    isOpen,
+    onClose,
+    headerTitle,
+    data,
+    images,
+    onSubmitModal,
+    action,
+    initialData = {},
+  }) => {
   const {
     control,
     handleSubmit,
     reset,
     setValue,
     getValues,
-    formState: { errors },
-  } = useForm<Record<string, any>>({
-    defaultValues: initialData,
-  });
+    formState: { errors, isSubmitting },
+  } = useForm<ModalFormData>();
   const toast = useToast();
-  const handleRemoveImage = (key: string,image: string) => {
-    const existingImages: ImageInfo = control._getWatch(key) || {
-      FileNameList: [],
-      FileContentList: [],
-      deletedFileNames:[],
-      URI: [],
-    };
-    // existingImages.deletedFileNames = [existingImages.deletedFileNames?,image]
+  const [selectedImage, setSelectedImage] = useState<ImageSource[]>(
+    images || []
+  );
 
-  };
   const validateNotEmpty = (value: string) => {
     return (
       value.trim() !== "" ||
@@ -60,15 +63,18 @@ const GlobalModal: React.FC<GlobalModalProps> = ({
     );
   };
 
-  const onSubmit = (formData: Record<string, any>) => {
-    console.log("Form Data: " + formData);
-    onSubmitModal(formData);
-    reset();
-    onClose();
-    toast.show({ title: "Form submitted successfully" });
+  const onSubmit = async (formData: FormData) => {
+    try {
+      console.log("Form Data: ", formData);
+      await onSubmitModal(formData);
+      reset();
+      toast.show({ title: "Form submitted successfully" });
+    } catch (error) {
+      console.error("Failed to submit", error);
+    }
   };
 
-  const pickImage = async (key: string) => {
+  const pickImage = async (key: string, onChange: (value: any)=>void) => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -84,8 +90,6 @@ const GlobalModal: React.FC<GlobalModalProps> = ({
       }
       var getFileName = fileName;
       if (!fileName) getFileName = path.split("/").pop();
-      console.log("uri: " + uri);
-      console.log("fileName: " + getFileName);
       const reader = new FileReader();
       const response = await fetch(uri);
       const blob = await response.blob();
@@ -96,7 +100,7 @@ const GlobalModal: React.FC<GlobalModalProps> = ({
           const existingImages: ImageInfo = control._getWatch(key) || {
             FileNameList: [],
             FileContentList: [],
-            deletedFileNames:[],
+            deletedFileNames: [],
             URI: [],
           };
           const newFileNameList: string[] =
@@ -105,46 +109,69 @@ const GlobalModal: React.FC<GlobalModalProps> = ({
             ...existingImages.FileContentList,
             base64Data,
           ];
-          const newURI: string[] = existingImages.URI?.filter((name) => !!name) || [];
+          const newURI: string[] =
+            existingImages.URI?.filter((name) => !!name) || [];
           if (getFileName) {
             const newImg: ImageInfo = {
               FileNameList: [...newFileNameList, getFileName],
               FileContentList: newFileContentList,
-              deletedFileNames:[],
+              deletedFileNames: [],
               URI: [...newURI, uri],
             };
             setValue(key, newImg, { shouldValidate: true });
-            console.log("FIle: " + getValues(key).FileNameList);
+            setSelectedImage([uri, ...(selectedImage || [])]);
+            onChange(newImg);
           }
         }
       };
     }
   };
-  const handleRemoveImagePicked = (key: string, image: string) => {
-    const currentValue: ImageInfo = control._getWatch(key) || {
-      FileNameList: [],
-      FileContentList: [],
-      deletedFileNames:[],
-      URI: [],
-    };
-    const index = currentValue.URI?.indexOf(image);
-    if (index !== -1) {
-      // Remove the image from FileNameList and FileContentList
-      const updatedFileNameList = currentValue.FileNameList.filter((_, i) => i !== index);
-      const updatedFileContentList = currentValue.FileContentList.filter((_, i) => i !== index);
-      const updatedURI = currentValue.URI?.filter((_, i) => i !== index)||[];
-  
-      // Set the updated values
-      setValue(
-        key,
-        {
-          FileNameList: updatedFileNameList,
-          FileContentList: updatedFileContentList,
-          URI: updatedURI,
-        },
-        { shouldValidate: true }
-      );
-      console.log("FIle after deleted: " + getValues(key).URI);
+  const handleRemoveImagePicked = (key: string, image: ImageSource) => {
+    if (typeof image === "string") {
+      const currentValue: ImageInfo = control._getWatch(key) || {
+        FileNameList: [],
+        FileContentList: [],
+        deletedFileNames: [],
+        URI: [],
+      };
+      if (
+        image.startsWith("http://") ||
+        image.startsWith("https://") ||
+        image.startsWith("data:image") ||
+        image.startsWith("file://")
+      ) {
+        const index = currentValue.URI?.indexOf(image);
+        if (index !== -1) {
+          const updatedFileNameList = currentValue.FileNameList.filter(
+            (_, i) => i !== index
+          );
+          const updatedFileContentList = currentValue.FileContentList.filter(
+            (_, i) => i !== index
+          );
+          const updatedURI =
+            currentValue.URI?.filter((_, i) => i !== index) || [];
+
+          // Set the updated values
+          setValue(
+            key,
+            {
+              FileNameList: updatedFileNameList,
+              FileContentList: updatedFileContentList,
+              URI: updatedURI,
+            },
+            { shouldValidate: true }
+          );
+        }
+      } else {
+        currentValue.deletedFileNames?.push(image);
+      }
+      const index = selectedImage.indexOf(image);
+      if (index !== -1) {
+        const updatedSelectedImage = selectedImage.filter(
+          (_, i) => i !== index
+        );
+        setSelectedImage(updatedSelectedImage);
+      }
     }
   };
 
@@ -198,25 +225,20 @@ const GlobalModal: React.FC<GlobalModalProps> = ({
                         )}
                         {field.type === "imagePicker" && (
                           <Stack>
-                            <Button onPress={() => pickImage(key)}>
+                            <Button onPress={() => pickImage(key,onChange)}>
                               Chọn ảnh
                             </Button>
-                            {value &&
-                              console.log("Value: " + value.FileNameList)}
-                            {value && Array.isArray(value.FileNameList) && (
-                              <ImageCarouselURI
-                              onRemoveImage={(image) => handleRemoveImagePicked(key, image)}
-                                images={value.URI}
+                            {(value?.URI || images || []).length > 0 && (
+                              <ImageCarousel
+                                onRemoveImage={(image) =>
+                                  handleRemoveImagePicked(key, image)
+                                }
+                                images={selectedImage}
                               />
                             )}
                           </Stack>
                         )}
-                        {initialData.hinhAnhCoSan && (
-                          <ImageCarousel
-                            onRemoveImage={(image) => handleRemoveImage(key,image)}
-                            images={initialData.hinhAnhCoSan}
-                          />
-                        )}
+
                         <Stack></Stack>
                       </>
                     )}
@@ -240,9 +262,11 @@ const GlobalModal: React.FC<GlobalModalProps> = ({
             >
               Hủy
             </Button>
-            <Button w="40%" onPress={handleSubmit(onSubmit)}>
-              {action}
-            </Button>
+            
+            <Button w="40%" onPress={handleSubmit(()=>{console.log("Submitting!!!")})} disabled={isSubmitting} >
+                {action}
+              </Button>
+            
           </Button.Group>
         </Modal.Footer>
       </Modal.Content>
