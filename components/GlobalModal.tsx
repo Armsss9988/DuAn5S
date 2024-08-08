@@ -32,17 +32,17 @@ export interface GlobalModalProps {
   onSubmitModal: (data: FormData) => Promise<void>;
   action: string;
   initialData?: Record<string, any>;
-  }
-  const GlobalModal: React.FC<GlobalModalProps> = ({
-    isOpen,
-    onClose,
-    headerTitle,
-    data,
-    images,
-    onSubmitModal,
-    action,
-    initialData = {},
-  }) => {
+}
+const GlobalModal: React.FC<GlobalModalProps> = ({
+  isOpen,
+  onClose,
+  headerTitle,
+  data,
+  images,
+  onSubmitModal,
+  action,
+  initialData = {},
+}) => {
   const {
     control,
     handleSubmit,
@@ -56,11 +56,20 @@ export interface GlobalModalProps {
     images || []
   );
 
-  const validateNotEmpty = (value: string) => {
-    return (
-      value.trim() !== "" ||
-      "Trường này là bắt buộc và không được chứa chỉ khoảng trắng"
-    );
+  const validateNotEmpty = (value: any) => {
+    if (typeof value === "string") {
+      return (
+        value.trim() !== "" ||
+        "Trường này là bắt buộc và không được chứa chỉ khoảng trắng"
+      );
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0 || "Trường này không được để trống";
+    }
+    if (typeof value === "object" && value !== null) {
+      return Object.keys(value).length > 0 || "Trường này không được để trống";
+    }
+    return "Trường này không hợp lệ";
   };
 
   const onSubmit = async (formData: FormData) => {
@@ -74,7 +83,7 @@ export interface GlobalModalProps {
     }
   };
 
-  const pickImage = async (key: string, onChange: (value: any)=>void) => {
+  const pickImage = async (key: string, onChange: (value: any) => void) => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -225,7 +234,7 @@ export interface GlobalModalProps {
                         )}
                         {field.type === "imagePicker" && (
                           <Stack>
-                            <Button onPress={() => pickImage(key,onChange)}>
+                            <Button onPress={() => pickImage(key, onChange)}>
                               Chọn ảnh
                             </Button>
                             {(value?.URI || images || []).length > 0 && (
@@ -262,11 +271,16 @@ export interface GlobalModalProps {
             >
               Hủy
             </Button>
-            
-            <Button w="40%" onPress={handleSubmit(()=>{console.log("Submitting!!!")})} disabled={isSubmitting} >
-                {action}
-              </Button>
-            
+
+            <Button
+              w="40%"
+              onPress={handleSubmit(() => {
+                console.log("Submitting!!!");
+              })}
+              disabled={isSubmitting}
+            >
+              {action}
+            </Button>
           </Button.Group>
         </Modal.Footer>
       </Modal.Content>
